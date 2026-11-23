@@ -1,0 +1,49 @@
+# Calibration constants for the camera characterised in Project 1.
+# Every measured value is [value, uncertainty]. null = not filled in yet.
+# Paths are relative to `root`, which is relative to this file.
+root: ..
+
+camera:
+  make: Nikon
+  model: null            # TODO
+  lens: null             # TODO. Shading depends on focal length and aperture:
+  focal_length_mm: null  #       shoot the scenes at the same settings as the flat
+  aperture_f: null       #       field, or reshoot the flat at the scenes' settings.
+
+raw:
+  # Copied from the training-without-clean-images notebook (BLACK_LEVEL, SATURATION_LEVEL).
+  # Confirm against Project 1 and fill in the uncertainties. A scalar or four values (R, G1, G2, B).
+  black_level_dn: [256, null]
+  white_level_dn: [3567, null]
+
+paths:
+  dark_frames: data/calib/dark     # Project 1 dark frames (lens cap on)
+  flat_frames: data/calib/flat     # Project 1 flat field frames
+  bursts: data/burst               # one sub-folder per ISO, named like iso100, iso800, iso3200
+  detail: data/detail              # capture 2
+  detector: data/detector          # capture 3: sceneNN.NEF + sceneNN.JPG pairs
+  derived: data/derived            # generated; not committed
+  results: results                 # JSON and figures the report quotes
+
+calibration:
+  defects_k_sigma: 8.0     # hot pixel threshold on the mean dark frame (robust sigmas)
+  stuck_tolerance: 0.3     # relative deviation from same-colour neighbours in the flat
+  lsc_method: poly         # poly (2-D polynomial) or gauss (Gaussian smoothing)
+  lsc_degree: 6
+  lsc_sigma_frac: 0.01     # for gauss: smoothing width as a fraction of image width
+
+white_balance:
+  # Gains the pipeline multiplies R, G, B by (G = 1), from the ColorChecker in Project 1.
+  gains_rgb: [[null, null], [1.0, 0.0], [null, null]]
+
+color_correction:
+  # 3x3, white-balanced camera RGB -> linear sRGB; rows produce output R, G, B.
+  matrix: null
+  uncertainty: null
+
+noise:
+  # Poisson-Gaussian model in raw DN: var = mean / K + read^2.
+  # K = conversion gain (electrons per DN). One entry per ISO you use.
+  # scripts/build_reference.py fits these from each burst too; report both.
+  iso:
+    100: {gain_e_per_dn: [null, null], read_noise_dn: [null, null]}
