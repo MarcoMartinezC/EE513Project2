@@ -5,45 +5,56 @@ root: ..
 
 camera:
   make: Nikon
-  model: null            # TODO
-  lens: null             # TODO. Shading depends on focal length and aperture:
-  focal_length_mm: null  #       shoot the scenes at the same settings as the flat
-  aperture_f: null       #       field, or reshoot the flat at the scenes' settings.
+  model: Z 50
+  lens: NIKKOR Z DX 16-50mm f/3.5-6.3 VR
+  focal_length_mm: null  # choose for the capture session (P1: geometry/edges 50, flats 26, darks 30, colour 16)
+  aperture_f: null
 
 raw:
-  # Copied from the training-without-clean-images notebook (BLACK_LEVEL, SATURATION_LEVEL).
-  # Confirm against Project 1 and fill in the uncertainties. A scalar or four values (R, G1, G2, B).
-  black_level_dn: [256, null]
-  white_level_dn: [3567, null]
+  black_level_dn: [1008.26, 0.01]   # P1 dark frames, extrapolated to 0 s (file: 1008)
+  white_level_dn: [16383, null]     # from the file; confirm with a clipped frame
 
 paths:
-  dark_frames: data/calib/dark     # Project 1 dark frames (lens cap on)
-  flat_frames: data/calib/flat     # Project 1 flat field frames
+  dark_frames: data/calib/dark     # one ISO and exposure per folder; new captures
+  flat_frames: data/calib/flat     # NEW evenly lit flat at the chosen zoom/aperture
   bursts: data/burst               # one sub-folder per ISO, named like iso100, iso800, iso3200
-  detail: data/detail              # capture 2
-  detector: data/detector          # capture 3: sceneNN.NEF + sceneNN.JPG pairs
-  derived: data/derived            # generated; not committed
-  results: results                 # JSON and figures the report quotes
+  detail: data/detail
+  detector: data/detector
+  derived: data/derived
+  results: results
 
 calibration:
-  defects_k_sigma: 8.0     # hot pixel threshold on the mean dark frame (robust sigmas)
-  stuck_tolerance: 0.3     # relative deviation from same-colour neighbours in the flat
-  lsc_method: poly         # poly (2-D polynomial) or gauss (Gaussian smoothing)
+  defects_k_sigma: 8.0
+  stuck_tolerance: 0.3
+  lsc_method: poly
   lsc_degree: 6
-  lsc_sigma_frac: 0.01     # for gauss: smoothing width as a fraction of image width
+  lsc_sigma_frac: 0.01
 
 white_balance:
-  # Gains the pipeline multiplies R, G, B by (G = 1), from the ColorChecker in Project 1.
-  gains_rgb: [[null, null], [1.0, 0.0], [null, null]]
+  # Illuminant 1, mean of charts A-C (DSC_1404-1406, ISO 400, 16 mm); uncertainty = half-spread.
+  # Only valid under that light: R gain was 1.37 / 1.28 / 2.61 under Ill. 2 / Ill. 3 / daylight.
+  gains_rgb: [[1.6284, 0.0045], [1.0, 0.0], [2.7701, 0.0014]]
 
 color_correction:
-  # 3x3, white-balanced camera RGB -> linear sRGB; rows produce output R, G, B.
-  matrix: null
-  uncertainty: null
+  # From project1.ipynb: camera RGB -> XYZ (D50) per chart, Bradford to D65, XYZ -> linear sRGB,
+  # each chart divided by its G-row sum (exposure factor ~20.05), then mean of charts A-C.
+  # Illuminant 1 only (ISO 400, 16 mm). Applied as rgb @ M.T.
+  matrix:
+    - [ 1.5865, -0.4702, -0.1483]
+    - [-0.2322,  1.2855, -0.0533]
+    - [ 0.0685, -0.6103,  1.5244]
+  uncertainty:   # half-spread across charts A-C
+    - [0.0234, 0.0132, 0.0031]
+    - [0.0074, 0.0149, 0.0075]
+    - [0.0075, 0.0183, 0.0115]
 
 noise:
-  # Poisson-Gaussian model in raw DN: var = mean / K + read^2.
-  # K = conversion gain (electrons per DN). One entry per ISO you use.
-  # scripts/build_reference.py fits these from each burst too; report both.
+  # Poisson-Gaussian model in raw DN: var = mean / K + read^2, K in electrons per DN.
+  # The Z50 switches conversion gain at ISO 400: ISO 100 numbers do NOT carry over.
   iso:
-    100: {gain_e_per_dn: [null, null], read_noise_dn: [null, null]}
+    100:
+      # P1 PTC, OLS: 0.2811 +- 0.0041 DN/e-  ->  K = 3.557 +- 0.052 e-/DN.
+      # Weighted fit gives 0.3139 DN/e- (K = 3.186): an 11 % systematic. Recapture.
+      gain_e_per_dn: [3.557, 0.052]
+      # P1 dark pairs, measured directly in DN.
+      read_noise_dn: [1.4016, 0.0320]

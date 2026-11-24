@@ -30,14 +30,18 @@ def main():
     ap.add_argument("--crop", type=int, default=0)
     ap.add_argument("--save-stages", default=None, help="folder for a PNG after every stage")
     ap.add_argument("--bits", type=int, choices=[8, 16], default=8)
+    ap.add_argument("--skip", nargs="+", default=[], choices=P.names(P.DEFAULT_STEPS),
+                    help="stages to leave out, e.g. --skip ccm sharpen")
+    ap.add_argument("--exposure", type=float, default=1.0, help="gain before the tone curve")
     args = ap.parse_args()
 
     cfg, calib = cliutil.load(args)
     frame = load_raw(args.raw, C.black_rggb(cfg), C.white_level(cfg))
     mosaic, origin = center_crop_mosaic(frame.mosaic, args.crop)
     iso = args.iso or cliutil.iso_from_path(args.raw)
+    require = ("wb",) if "ccm" in args.skip else ("wb", "ccm")
     ctx = build_context(cfg, calib, frame.black_rggb, frame.white, mosaic.shape, "full", iso=iso,
-                        crop_origin=origin)
+                        crop_origin=origin, require=require)
 
     steps = P.MINIMAL_STEPS if args.minimal else P.DEFAULT_STEPS
     steps = P.with_params(steps, "demosaic", method=args.demosaic)
@@ -55,6 +59,12 @@ def main():
 
         ctx.learned_denoiser = (OnnxDenoiser(args.model, ctx.noise) if args.model.endswith(".onnx")
                                 else TorchDenoiser(args.model, ctx.noise))
+
+    for name in args.skip:
+        if name in P.names(steps):
+            steps = P.without(steps, name)
+    if "tone" in P.names(steps):
+        steps = P.with_params(steps, "tone", exposure=args.exposure)
 
     res = P.run(mosaic, ctx, steps, keep=bool(args.save_stages))
 

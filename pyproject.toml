@@ -7,7 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.26",
     "scipy>=1.11",
-    "opencv-python>=4.8",
+    "opencv-contrib-python>=4.8",
     "rawpy>=0.19",
     "scikit-image>=0.22",
     "matplotlib>=3.8",

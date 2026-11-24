@@ -3,7 +3,7 @@
 #
 # Override any variable on the command line, e.g.  make train ISOS="100 3200" STEPS=5000
 
-PY        ?= uv run python
+PY        ?= ../.venv/bin/python
 CONFIG    ?= config/camera.yaml
 DATA      ?= data
 ISOS      ?= 100 800 3200          # ISOs of your bursts (folders data/burst/iso<ISO>)
@@ -21,7 +21,7 @@ help:
 	@grep -E '^#' Makefile | head -6; echo; echo "targets: setup test calibrate references demosaic ablation pool train evaluate export benchmark detect results reproduce demo"
 
 setup:
-	uv sync --group learning --group dev
+	uv pip install --python $(PY) -e .
 
 test:
 	$(PY) -m pytest
