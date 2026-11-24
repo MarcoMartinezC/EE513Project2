@@ -12,7 +12,7 @@ camera:
 
 raw:
   black_level_dn: [1008.26, 0.01]   # P1 dark frames, extrapolated to 0 s (file: 1008)
-  white_level_dn: [16383, null]     # from the file; confirm with a clipped frame
+  white_level_dn: [16383, 0]   # confirmed: DSC_1485 (ISO 100, 1 s) clips at exactly 16383 across the centre
 
 paths:
   dark_frames: data/calib/dark     # one ISO and exposure per folder; new captures
@@ -50,11 +50,15 @@ color_correction:
 
 noise:
   # Poisson-Gaussian model in raw DN: var = mean / K + read^2, K in electrons per DN.
-  # The Z50 switches conversion gain at ISO 400: ISO 100 numbers do NOT carry over.
+  # scripts/fit_ptc.py --max-level 0.3: flat pairs DSC_1494-1570 (overcast sky, defocused),
+  # dark pairs DSC_1601-1642. Fixed fit (weighted, intercept = dark-pair read noise^2).
   iso:
     100:
-      # P1 PTC, OLS: 0.2811 +- 0.0041 DN/e-  ->  K = 3.557 +- 0.052 e-/DN.
-      # Weighted fit gives 0.3139 DN/e- (K = 3.186): an 11 % systematic. Recapture.
-      gain_e_per_dn: [3.557, 0.052]
-      # P1 dark pairs, measured directly in DN.
-      read_noise_dn: [1.4016, 0.0320]
+      gain_e_per_dn: [3.078, 0.041]    # planes + spread of ols/weighted/fixed (3.08-3.14)
+      read_noise_dn: [1.358, 0.023]    # dark pairs, 1/4000 s
+    800:
+      gain_e_per_dn: [0.399, 0.013]    # fits agree within 0.2 %
+      read_noise_dn: [3.351, 0.008]
+    3200:
+      gain_e_per_dn: [0.1004, 0.0029]  # fits agree within 0.7 %; 2 clipped pairs excluded
+      read_noise_dn: [11.563, 0.067]

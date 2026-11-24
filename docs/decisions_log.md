@@ -157,7 +157,41 @@ Run:          --denoise none --skip ccm --exposure 10; no shading map, no defect
 Change:       added --skip and --exposure to scripts/run_pipeline.py
 Timing:       1.85 s total (single run, includes first-call overhead):
               demosaic (MHC) 1045 ms (57 %), tone 478 ms (26 %), sharpen 239 ms (13 %)
-Verified by:  TODO: grey patches neutral? red/blue not swapped? white patch not clipped?
+Verified by:  check_chart_neutrals.py on DSC_1404-1406: grey patches 19-24 within 2 % of
+              neutral, patch 21 within 0.6 %. Full pipeline with CCM: 1.94 s single run.
 Still unsure: Tone curve cost is 63 M power() calls; a lookup table should cut
               it to milliseconds (Part C). Proper latency numbers come from
               benchmark_pipeline.py (mean ± std over runs).
+
+## 2026-11-24  White level confirmed at ISO 100
+
+Measured:     DSC_1485 (ISO 100, 1 s, flat target overexposed): max 16383, centre 512x512
+              median 16383, 100 % of centre pixels at 16383.
+Result:       white level 16383 DN confirmed empirically at ISO 100 (Project 1 only had the file value).
+Still to do:  confirm at ISO 800 and 3200 with the clipped frame of each column.
+
+White level 16383 confirmed at ISO 100, 800 and 3200: pixels at 16383 in DSC_1494-1498 (ISO 100),
+DSC_1522-1524 (ISO 800, 53 % of centre), DSC_1568-1569 (ISO 3200, 100 %).
+
+Black level 1008.26 DN holds at ISO 100, 800 and 3200: dark-pair centre means within 0.3 DN of it
+(DSC_1601-1642, cap on, 1/4000 and 1/60 s).
+
+## 2026-11-24  Noise model per ISO (flat pairs + dark pairs)
+
+Captures:     flat pairs DSC_1494-1570 (overcast sky, defocused; ISO 100 f/8, ISO 800 f/22,
+              ISO 3200 f/40; 1/13-1/2000 s), sorted with scripts/sort_ptc.py; dark pairs DSC_1601-1642
+              (cap on, 1/4000 and 1/60 s).
+Decision:     K from the fixed fit (weighted, intercept = dark-pair read noise^2) on pairs <= 30 % of full
+              scale; read noise directly from dark pairs at 1/4000 s.
+Why the cut:  On all pairs, ISO 100 OLS gave 2.70 with green (2.57) and red/blue (2.81) disagreeing, against
+              3.01 weighted. With pairs above 30 % excluded, OLS moved to 3.13, planes agreed within 3 %, and
+              all fits fell within 3.08-3.14. ISO 800 and 3200 changed < 0.5 %. So the top ISO 100 pairs were
+              contaminated (most likely cloud structure shifting between frames), not a sensor curvature.
+              Project 1's weighted fit (3.19) agrees within 2-4 %; its OLS (3.56) had the same problem.
+Results:      K = 3.078 ± 0.041 / 0.399 ± 0.013 / 0.1004 ± 0.0029 e-/DN at ISO 100 / 800 / 3200.
+              Read noise 1.358 / 3.351 / 11.563 DN = 4.2 / 1.34 / 1.16 e-: the input-referred read noise
+              drops 3x across the conversion-gain switch at ISO 400.
+Verified by:  fit_ptc.py on simulated pairs with known K and read noise (all recovered); read noise at
+              1/60 s matches 1/4000 s within 3 % at every ISO; four Bayer planes agree.
+Still unsure: B plane K is 4-7 % above the others at ISO 800 and 3200 under every fit (covered by the
+              quoted uncertainty). One hot or flickering pixel in the ISO 100 1/60 s R patch (1.57 vs 1.39 DN).
