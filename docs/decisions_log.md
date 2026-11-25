@@ -195,3 +195,15 @@ Verified by:  fit_ptc.py on simulated pairs with known K and read noise (all rec
               1/60 s matches 1/4000 s within 3 % at every ISO; four Bayer planes agree.
 Still unsure: B plane K is 4-7 % above the others at ISO 800 and 3200 under every fit (covered by the
               quoted uncertainty). One hot or flickering pixel in the ISO 100 1/60 s R patch (1.57 vs 1.39 DN).
+
+## 2026-11-25  Lens shading map (38 mm, f/5.6)
+
+Captures:     DSC_1682-1685 upright, DSC_1686-1689 rotated 180 deg; overcast sky through paper
+              taped over the lens; ISO 100, 1/8 s, centre level 0.53-0.60.
+Result:       corner gain R 2.02, G 1.98, B 1.92 (corners at ~0.51 of centre).
+Check:        maps from the two orientations differ by 3.9 % rms (10 % max, 8.9 % inside the central
+              90 %): the sky's gradient still reaches the sensor through one sheet of paper. The final
+              map averages both orientations, which cancels the part that flips with rotation; any
+              unevenness that does not flip is not measured by this check.
+Rejected:     screen flats (DSC_1645-1653): 1 % of full scale and 4.7 % rms rotation difference.
+Uncertainty:  ~4 % on the shading gain away from the centre (rotation difference as an upper bound).
