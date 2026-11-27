@@ -127,14 +127,21 @@ def main():
         print(f"frame {k}: full {scores['full pipeline'][-1]:.2f} dB")
 
     table = {}
-    full_mean = mean_std(scores["full pipeline"])[0]
+    full = np.array(scores["full pipeline"])
+    full_mse = 10 ** (-full / 10)
     for name, vals in scores.items():
-        m, s, n = mean_std(vals)
-        table[name] = {"psnr_db": [m, s], "delta_vs_full_db": m - full_mean, "n_frames": n,
-                       "per_frame": vals}
+        v = np.array(vals)
+        m, sd, n = mean_std(v)
+        d = v - full  # paired: same input frames, so frame-to-frame changes (e.g. light drift) cancel
+        dm, dsd, _ = mean_std(d)
+        added = 10 ** (-v / 10) - full_mse  # MSE this variant adds on top of the full pipeline's
+        am, asd, _ = mean_std(added)
+        table[name] = {"psnr_db": [m, sd], "delta_vs_full_db": [dm, dsd],
+                       "added_mse": [am, asd], "n_frames": n, "per_frame": vals}
     report = {"reference": args.reference, "iso": sb.iso, "frames_used": ks.tolist(),
               "compared_in": "display sRGB before sharpening, peak 1.0",
-              "uncertainty": "std over input frames (ddof=1)", "excluded_border_px": crop,
+              "uncertainty": "std over input frames (ddof=1); delta and added MSE are paired per frame",
+              "excluded_border_px": crop,
               "denoiser_eps_scale": {"packed": eps_raw, "after_demosaic": eps_rgb, "tuned_on_frame": None if
                                      args.no_tune else tune_k, "grid_psnr_db": grid},
               "variants": table}
@@ -142,9 +149,13 @@ def main():
     out_dir = cliutil.results(cfg)
     (out_dir / f"ablation_{tag}.json").write_text(json.dumps(report, indent=2))
 
-    lines = [f"| Variant (ISO {sb.iso}) | PSNR (dB) | Δ vs full (dB) |", "|---|---|---|"]
+    lines = [f"| Variant (ISO {sb.iso}) | PSNR (dB) | Δ vs full (dB, paired) | Added MSE |", "|---|---|---|---|"]
     for name, row in sorted(table.items(), key=lambda kv: -kv[1]["psnr_db"][0]):
-        lines.append(f"| {name} | {cliutil.fmt(row['psnr_db'])} | {row['delta_vs_full_db']:+.2f} |")
+        dm, dsd = row["delta_vs_full_db"]
+        am, asd = row["added_mse"]
+        dtxt = "0 (reference)" if name == "full pipeline" else f"{dm:+.2f} ± {dsd:.2f}"
+        atxt = "—" if name == "full pipeline" else f"{am:.2e} ± {asd:.1e}"
+        lines.append(f"| {name} | {cliutil.fmt(row['psnr_db'])} | {dtxt} | {atxt} |")
     md = "\n".join(lines)
     (out_dir / f"ablation_{tag}.md").write_text(md + "\n")
     print(md)

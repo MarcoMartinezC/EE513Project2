@@ -1,0 +1,57 @@
+{
+  "source": "data/derived/burst_iso100.npz",
+  "white_balanced": true,
+  "peak": 1.0,
+  "uncertainty": "tile bootstrap std over 64x64 tiles",
+  "margin_px": 4,
+  "results": {
+    "averaged burst": {
+      "bilinear": {
+        "psnr_whole_db": [
+          62.07923239167619,
+          0.2404237008914758
+        ],
+        "psnr_interior_db": [
+          61.96329952571379,
+          0.2472381533191776
+        ],
+        "ssim_interior": 0.9995455741882324
+      },
+      "mhc": {
+        "psnr_whole_db": [
+          62.164326275262894,
+          0.2045179979430132
+        ],
+        "psnr_interior_db": [
+          62.05464211205292,
+          0.20766970701864026
+        ],
+        "ssim_interior": 0.9995067715644836
+      }
+    },
+    "single frame": {
+      "bilinear": {
+        "psnr_whole_db": [
+          54.579272612212,
+          0.089831968786737
+        ],
+        "psnr_interior_db": [
+          54.513674041439096,
+          0.08996129402139216
+        ],
+        "ssim_interior": 0.9966527819633484
+      },
+      "mhc": {
+        "psnr_whole_db": [
+          53.708398739636884,
+          0.0811582136934051
+        ],
+        "psnr_interior_db": [
+          53.64578664025394,
+          0.0807130785149008
+        ],
+        "ssim_interior": 0.9957956671714783
+      }
+    }
+  }
+}

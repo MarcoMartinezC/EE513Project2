@@ -1,0 +1,33 @@
+{
+  "source": "data/detail/DSC_2223.NEF",
+  "white_balanced": true,
+  "peak": 1.0,
+  "uncertainty": "tile bootstrap std over 64x64 tiles",
+  "margin_px": 4,
+  "results": {
+    "single frame": {
+      "bilinear": {
+        "psnr_whole_db": [
+          45.49451952886194,
+          0.14733767157985095
+        ],
+        "psnr_interior_db": [
+          45.501296056184486,
+          0.1477268223154928
+        ],
+        "ssim_interior": 0.9815713763237
+      },
+      "mhc": {
+        "psnr_whole_db": [
+          44.67191945336162,
+          0.13248689944065709
+        ],
+        "psnr_interior_db": [
+          44.679074470068876,
+          0.13270793699991676
+        ],
+        "ssim_interior": 0.976352870464325
+      }
+    }
+  }
+}

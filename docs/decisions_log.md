@@ -207,3 +207,89 @@ Check:        maps from the two orientations differ by 3.9 % rms (10 % max, 8.9 
               unevenness that does not flip is not measured by this check.
 Rejected:     screen flats (DSC_1645-1653): 1 % of full scale and 4.7 % rms rotation difference.
 Uncertainty:  ~4 % on the shading gain away from the centre (rotation difference as an upper bound).
+
+## 2026-11-27  Bursts captured
+
+Settings:     38 mm, f/5.6, single lamp indoors; ISO 100 at 1/6 s, ISO 800 at 1/50 s, ISO 3200 at 1/200 s;
+              20 frames each, self-timer, single-frame release.
+Levels:       median 0.125 / 0.134 / 0.129, 99th percentile 0.42 / 0.40 / 0.44 of full scale;
+              0.15-0.26 % clipped in each, from a small bright highlight in the upper middle-right
+              (lamp/specular), not the white reference.
+Rejected:     two earlier attempts in data/rejected/: first ~35 % clipped (2.6 stops over), second
+              ~7 stops under; one ISO 800/3200 set shot at the old shutter speeds.
+
+## 2026-11-27  Lamp flicker in the burst captures
+
+Found by:     build_reference.py: burst-fitted gain matched the flat pairs at ISO 100 (3.20 vs 3.08) but
+              not at ISO 800 (0.217 vs 0.399) or 3200 (0.024 vs 0.100); error grew with shutter speed.
+Confirmed:    frame-to-frame centre level variation 0.09 % / 0.69 % / 2.54 % and banding ratio 1.3 / 15.9 /
+              5.9 at 1/6 s / 1/50 s / 1/200 s: lamp flicker (120 Hz), averaged out only at slow shutters.
+Fix:          reshot all three bursts at 2 s / 1/4 s / 1/15 s (>= 8 flicker cycles) with the lamp further
+              away; hot-pixel darks reshot at ISO 3200, 1/15 s.
+Verified by:  (fill in after the reshoot: variation and banding ratio; burst-fitted K vs config)
+
+## 2026-11-27  Burst references: noise model cross-check
+
+Bursts:       daylight (no flicker): ISO 100 1 s, ISO 800 1/8 s, ISO 3200 1/30 s, f/5.6, 38 mm, 20 frames each.
+              Level variation 0.41 / 0.21 / 0.25 %, banding ratio 1.7 / 1.3 / 1.0. No clipping.
+Cross-check:  gain fitted from each burst (frame minus leave-one-out reference) vs flat pairs:
+              ISO 800 0.401 vs 0.399 (+0.5 %), ISO 3200 0.101 vs 0.1004 (+0.6 %); read noise within 3 %.
+              ISO 100 2.81 vs 3.08 (-8.6 %): consistent with its 0.41 % daylight drift adding variance
+              proportional to signal; config values kept.
+Shifts:       median 0.4-0.8 px, max 1.4 px (sensor): every reference frame was resampled.
+Hot pixels:   11,119 (0.053 %) at ISO 3200, 1/30 s.
+
+White balance (daylight): R 2.3091 ± 0.0012, B 1.5225 ± 0.0011 from the white paper in DSC_2136-2155.
+Patch G level rose 0.1862 -> 0.1890 (+1.5 %) across the ISO 100 burst at constant colour ratios:
+direct evidence of the daylight drift behind the ISO 100 burst-fitted gain being 8.6 % low.
+CCM: Project 1 natural light round (closest gains: 2.61 / 1.39).
+
+| Files | Reason | Deleted |
+|---|---|---|
+| burst, 1st attempt | ~35 % clipped (2.6 stops over) | 2026-11-27 |
+| burst, 2nd attempt | ~7 stops under (p99.9 0.03) | 2026-11-27 |
+| burst ISO 800/3200, 3rd attempt | shot at old shutter speeds, ~30 % clipped | 2026-11-27 |
+| burst, lamp set (1/6, 1/50, 1/200 s) | lamp flicker: level variation 0.09 / 0.69 / 2.54 %, banding 1.3 / 15.9 / 5.9 | 2026-11-27 |
+| DSC_1645-1653, DSC_1657, DSC_1671, DSC_1680 | shading flat tests (screen; underexposed sky) | 2026-11-25 |
+| DSC_2222 | detail scene test, p99.9 0.113 (2.6 stops under) | 2026-11-27 |
+
+## 2026-11-27  Demosaic scoring
+
+Burst scene (ISO 100, averaged ref): bilinear 61.96 ± 0.25, MHC 62.05 ± 0.21 dB (gap +0.09, not significant);
+  single frame: MHC -0.87 dB. Absolute PSNR is high because the scene sits at ~7 % of full scale (peak 1.0);
+  only the gap is compared. Reference frames were resampled (shifts up to 1.4 px).
+Detail scene DSC_2223 (single frame, 6 s): bilinear 45.50 ± 0.15, MHC 44.68 ± 0.13 dB (gap -0.82).
+  "MHC hurts most" crop: sharp colour edge with coloured fringes. MHC borrows another channel's
+  curvature, which overshoots where colours change differently across an edge.
+  Clipping near the edge: (check).
+Uncertainty: tile bootstrap (64x64 tiles), content variation across the frame.
+
+Crop figure (DSC_2223): MHC wins at a grey/white-to-dark edge (bilinear error concentrates along
+the edge; MHC's is noise-like); MHC loses at a grey-to-red edge (bright narrow error band along
+the edge: cross-channel overshoot where R changes little but G and B drop), and inside flat red
+texture (noise amplified across channels). Not clipping: the bright side is light grey, not saturated.
+
+## 2026-11-27  Colour matrix for daylight
+
+Source:       Project 1 Natural light round, DSC_1420-1422, refitted with project1.ipynb in a scratch
+              cell (no Project 1 outputs overwritten). Mean dE00 2.43 ± 0.12, worst 5.67 ± 0.17.
+Normalised:   camera -> XYZ (D50) -> Bradford -> linear sRGB (D65), divided by G-row sum (~100,
+              the charts' exposure); mean of charts A-C, uncertainty = half-spread.
+Mismatch:     chart round WB gains R 2.59 / B 1.39 vs today's scene R 2.31 / B 1.52: a different
+              daylight. Colour error on today's scene is not measured (no chart); Project 1's
+              transfer table bounds a matrix used under another light at mean dE00 3.5-5.4.
+Grey:         maps to (0.959, 1, 0.992); not rescaled.
+
+## 2026-11-27  Ablation at ISO 100 / 800 / 3200
+
+Result:       same ranking at all ISOs: black level (-34 / -29 / -25 dB) >> lens shading (-23 / -17 / -13)
+              > colour correction > denoising > WB after demosaic > MHC vs bilinear (-0.2 to -0.3).
+              Black level costs ~100x more than the choice of demosaicer.
+Across ISO:   dB costs of noise-independent stages shrink with ISO only because the full pipeline's own
+              error (noise) grows; added MSE is ~constant (shading 2.5-2.7e-3, black level 4.1-4.4e-2).
+              Denoising's cost grows with ISO (-2.9 / -5.5 / -7.1 dB), as expected.
+Order:        WB before demosaic and denoise before demosaic both win at every ISO.
+Zeros:        highlight clip (no clipped pixels in the bursts); defect correction (0.05 % of pixels,
+              invisible in whole-frame PSNR but visible as dots).
+Uncertainty:  ISO 100 per-frame PSNR drifts 47.6 -> 48.4 with the daylight; differences are reported
+              paired per frame, which cancels the drift.

@@ -31,22 +31,23 @@ calibration:
   lsc_sigma_frac: 0.01
 
 white_balance:
-  # Illuminant 1, mean of charts A-C (DSC_1404-1406, ISO 400, 16 mm); uncertainty = half-spread.
-  # Only valid under that light: R gain was 1.37 / 1.28 / 2.61 under Ill. 2 / Ill. 3 / daylight.
-  gains_rgb: [[1.6284, 0.0045], [1.0, 0.0], [2.7701, 0.0014]]
+  # Daylight (overcast), white paper in the burst scene: DSC_2136-2155 (ISO 100, 1 s), box rows 500-750,
+  # cols 1500-1750, shading-corrected; mean of 20 frames, uncertainty = half-spread over frames.
+  # Paper neutrality not verified (optical brighteners would bias B slightly).
+  gains_rgb: [[2.3091, 0.0012], [1.0, 0.0], [1.5225, 0.0011]]
 
 color_correction:
-  # From project1.ipynb: camera RGB -> XYZ (D50) per chart, Bradford to D65, XYZ -> linear sRGB,
-  # each chart divided by its G-row sum (exposure factor ~20.05), then mean of charts A-C.
-  # Illuminant 1 only (ISO 400, 16 mm). Applied as rgb @ M.T.
+  # Project 1 Natural light round (DSC_1420-1422, ISO 400, 16 mm): camera RGB -> XYZ (D50) per chart,
+  # Bradford D50 -> D65, XYZ -> linear sRGB, each divided by its G-row sum (~100), mean of 3 charts.
+  # Fit quality on those charts: mean dE00 2.43 ± 0.12, worst 5.67 ± 0.17. Applied as rgb @ M.T.
   matrix:
-    - [ 1.5865, -0.4702, -0.1483]
-    - [-0.2322,  1.2855, -0.0533]
-    - [ 0.0685, -0.6103,  1.5244]
+    - [ 1.6485, -0.4997, -0.1902]
+    - [-0.1731,  1.7019, -0.5288]
+    - [ 0.0275, -0.5290,  1.4935]
   uncertainty:   # half-spread across charts A-C
-    - [0.0234, 0.0132, 0.0031]
-    - [0.0074, 0.0149, 0.0075]
-    - [0.0075, 0.0183, 0.0115]
+    - [0.0251, 0.0081, 0.0100]
+    - [0.0056, 0.0235, 0.0182]
+    - [0.0045, 0.0229, 0.0220]
 
 noise:
   # Poisson-Gaussian model in raw DN: var = mean / K + read^2, K in electrons per DN.
