@@ -1,0 +1,103 @@
+{
+  "onnx": "runs/dncnn_all_30k/model.onnx",
+  "max_abs_diff_vs_pytorch": 2.5331974029541016e-07,
+  "float32_eps": 1.1920928955078125e-07,
+  "hardware": {
+    "machine": "arm64",
+    "processor": "arm",
+    "system": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.14"
+  },
+  "latency_cpu": [
+    {
+      "mean_ms": 16.261139597918373,
+      "std_ms": 1.7577897423002955,
+      "min_ms": 13.587291992735118,
+      "n_runs": 20,
+      "warmup_discarded": 1,
+      "input_packed_hw": [
+        256,
+        256
+      ],
+      "sensor_hw": [
+        512,
+        512
+      ],
+      "providers": [
+        "CPUExecutionProvider"
+      ],
+      "intra_op_threads": null
+    },
+    {
+      "mean_ms": 55.60276050091488,
+      "std_ms": 1.7874518353064466,
+      "min_ms": 51.68316699564457,
+      "n_runs": 20,
+      "warmup_discarded": 1,
+      "input_packed_hw": [
+        512,
+        512
+      ],
+      "sensor_hw": [
+        1024,
+        1024
+      ],
+      "providers": [
+        "CPUExecutionProvider"
+      ],
+      "intra_op_threads": null
+    },
+    {
+      "mean_ms": 246.91988324775593,
+      "std_ms": 35.39778242316537,
+      "min_ms": 223.44337499816902,
+      "n_runs": 20,
+      "warmup_discarded": 1,
+      "input_packed_hw": [
+        1024,
+        1024
+      ],
+      "sensor_hw": [
+        2048,
+        2048
+      ],
+      "providers": [
+        "CPUExecutionProvider"
+      ],
+      "intra_op_threads": null
+    }
+  ],
+  "latency_full_frame_tiled": {
+    "mean_ms": 1221.1600107621052,
+    "std_ms": 12.031099438671877,
+    "min_ms": 1205.4670420184266,
+    "n_runs": 4,
+    "warmup_discarded": 1,
+    "packed_hw": [
+      1864,
+      2800
+    ]
+  },
+  "latency_accelerated": [
+    {
+      "mean_ms": 145.9130291492329,
+      "std_ms": 24.84237040666724,
+      "min_ms": 128.4040409955196,
+      "n_runs": 20,
+      "warmup_discarded": 1,
+      "input_packed_hw": [
+        1024,
+        1024
+      ],
+      "sensor_hw": [
+        2048,
+        2048
+      ],
+      "providers": [
+        "CoreMLExecutionProvider",
+        "CPUExecutionProvider"
+      ],
+      "intra_op_threads": null
+    }
+  ]
+}

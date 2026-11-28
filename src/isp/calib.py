@@ -64,7 +64,38 @@ def correct_defects(mosaic: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
     Masked values are never used as inputs, so applying this twice gives the
     same result as applying it once (tested). Works in any units.
+
+    Sparse version: visits only the masked sites (0.05 % of the sensor), not
+    the whole frame. Same result as ``correct_defects_reference`` up to float
+    rounding, including at the border, where out-of-range neighbours are
+    reflected back into the image the same way (tested).
     """
+    if mask is None or not mask.any():
+        return mosaic
+    h, w = mosaic.shape
+    ys, xs = np.nonzero(mask)
+    num = np.zeros(ys.size, dtype=np.float64)
+    den = np.zeros(ys.size, dtype=np.float64)
+    for dy in (-2, 0, 2):
+        for dx in (-2, 0, 2):
+            if dy == 0 and dx == 0:
+                continue
+            # Same-colour neighbour two sites away; beyond the edge, reflect as the
+            # reference's packed-plane convolution does (packed index -1 -> 0, n -> n-1).
+            yy, xx = ys + dy, xs + dx
+            yy = np.where(yy < 0, yy + 2, np.where(yy >= h, yy - 2, yy))
+            xx = np.where(xx < 0, xx + 2, np.where(xx >= w, xx - 2, xx))
+            good = ~mask[yy, xx]
+            num += np.where(good, mosaic[yy, xx], 0.0)
+            den += good
+    out = mosaic.copy()
+    keep = den > 0
+    out[ys[keep], xs[keep]] = (num[keep] / den[keep]).astype(mosaic.dtype)
+    return out
+
+
+def correct_defects_reference(mosaic: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """Whole-frame convolution version of ``correct_defects`` (kept as the tested reference)."""
     if mask is None or not mask.any():
         return mosaic
     p = pack_rggb(mosaic).astype(np.float32)

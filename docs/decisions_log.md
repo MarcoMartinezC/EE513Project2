@@ -293,3 +293,84 @@ Zeros:        highlight clip (no clipped pixels in the bursts); defect correctio
               invisible in whole-frame PSNR but visible as dots).
 Uncertainty:  ISO 100 per-frame PSNR drifts 47.6 -> 48.4 with the daylight; differences are reported
               paired per frame, which cancels the drift.
+
+Cross-check:  added MSE from skipping denoising grows 8.7x (ISO 100->800) and 4.6x (800->3200);
+              the noise model predicts ~7.7x and ~4.4x. Bilinear's added MSE grows with ISO
+              (1.1e-6 / 3.9e-6 / 6.0e-6), unexplained. Defect correction: |added MSE| ~1e-8, sign varies;
+              mask built at ISO 3200, 1/30 s.
+
+Clean pool: DSC_2224-2241 (18 frames, ISO 100, other scenes) + DSC_2223 (detail scene), 2x2-binned once.
+  Levels: median 0.04-0.06, p99.9 0.10-0.42 (only 3 frames above 0.3), no clipping.
+  Residual noise after binning ~25 % of the added noise variance at ISO 100, ~3 % at ISO 800,
+  < 1 % at ISO 3200: the pool is clean enough for ISO 800/3200; the ISO 100 training targets are not.
+
+## 2026-11-27  Learned denoiser, first training: undertrained
+
+Runs:         3000 steps, batch 16, 64x64 packed patches, 58,980 parameters, ~83 s on MPS.
+Log:          loss/noisy stays at 1.00 for steps 100-700 (identity), then falls to 0.30 (ISO 3200 model)
+              / 0.46 (all ISOs) while still decreasing when the cosine learning rate reaches zero.
+Transfer:     ISO 3200 model: training loss/noisy 0.30 (= 5.2 dB) vs measured raw PSNR gain on the real
+              burst 5.4 dB: synthetic Poisson-Gaussian training noise transfers to real frames.
+Result:       guided filter +9.4 dB raw at ISO 3200; learned +3.8 (all) / +5.4 (ISO 3200 only).
+              ISO 3200-only beat all-ISO even at ISO 800/100: undertraining, not a mismatch result.
+Next:         retrain 30,000 steps.
+
+
+## 2026-11-27  Learned denoiser, 30,000 steps
+
+Training:     30,000 steps (~14 min on MPS each). loss/noisy levelled at ~0.054 (ISO 3200 only), ~0.08 (all ISOs).
+Result:       display PSNR vs guided, paired per frame: all-ISO model +0.92 ± 0.10 / +1.76 ± 0.03 / +1.24 ± 0.04 dB
+              at ISO 100 / 800 / 3200; SSIM equal or higher.
+Mismatch:     ISO 3200-only model vs all-ISO: +0.06 ± 0.01 at 3200, -0.66 ± 0.04 at 800, -3.06 ± 0.37 at 100
+              (below the guided filter there). A single-level network does not generalise across noise
+              levels even with a noise-map input it never saw vary.
+Ref floor:    19-frame reference keeps sigma^2/19: max measurable raw gain ~13.0 dB at ISO 3200; learned
+              measures 11.1 dB. Floor-corrected raw PSNR: guided ~55.1, learned ~58.7-58.8 dB, so the true
+              learned advantage is 1.7 (measured) to ~3.7 dB (corrected; resampling makes this an upper bound).
+Detail ratio: learned 0.14-0.15 vs guided 0.35 at ISO 3200; ambiguous because the reference keeps noise.
+              Failure crops decide whether texture is erased.
+
+Failure crops (ISO 3200, frame 0): the three tiles where the all-ISO model loses most to the guided filter
+are all smooth, low-contrast areas (soft diagonal shading). Failure mode: low-frequency mottling: blotches a
+few pixels across remain after the network removes pixel-scale noise; the guided filter smooths these areas more
+evenly. No erased or invented texture in these tiles (the reference has none). Learned detail ratio 0.18-0.25
+< guided 0.27-0.33 despite higher error: the detail ratio measures energy, not correctness.
+Likely cause: receptive field ~17x17 packed px, so noise at larger scales is indistinguishable from shading.
+Limitation: the burst scene has little fine texture, so erasure of real detail is not tested here.
+
+## 2026-11-27  ONNX export and latency (all-ISO model, 30k steps)
+
+Agreement:    max |PyTorch - onnxruntime| = 2.5e-7 (2.1x float32 eps 1.19e-7): rounding only.
+Latency:      CPU (arm64 Mac, onnxruntime, 20 runs after 1 warm-up): 16.3 ± 1.8 / 55.6 ± 1.8 / 246.9 ± 35.4 ms
+              at 512² / 1024² / 2048² sensor px; full 21 MP frame tiled 1221 ± 12 ms (4 runs).
+              Linear in pixel count: ~55-60 ms/MP; tiling overhead negligible.
+              CoreML: 145.9 ± 24.8 ms at 2048² (1.7x faster than CPU, more variable).
+Throughput:   ~58,750 MAC per packed pixel -> 3.1e11 MAC per frame -> ~250 GMAC/s on CPU.
+
+
+## 2026-11-27  Pipeline latency (full frame, DSC_2223, 5 runs after 1 warm-up)
+
+Guided:   2371 ± 100 ms. MHC demosaic 1009 (43 %), guided denoise 497 (21 %), defects 265 (11 %),
+          sharpen 242, tone 230, CCM 81; black level / LSC / WB / clip / to_unit 4-18 ms each.
+Learned:  3074 ± 69 ms; ONNX denoiser 1248 ± 51 ms (41 %), matching the standalone 1221 ± 12 ms.
+          The learned denoiser costs +0.75 s per frame (2.5x the guided filter).
+Decode:   ~210 ms (rawpy), not included.
+Notes:    defect correction processes the whole frame for 0.05 % of pixels; the tone curve evaluates
+          63 M power functions; MHC evaluates every filter at every site.
+
+## 2026-11-27  Part C: optimising the three slowest stages
+
+Profiled: MHC demosaic 43 %, defects 11 %, tone 10 % of 2.37 s (guided pipeline, DSC_2223).
+Changes:  (1) demosaic: filters evaluated only on the sites that use them (shifted-slice sums on a
+          mirror-padded mosaic); MHC no longer computes a bilinear result it then overwrites.
+          (2) defects: visits only the masked sites (0.05 % of pixels) instead of whole-frame convolution.
+          (3) tone: sRGB curve by 2^18-entry lookup (max error 2.5e-5 = ~1 % of an 8-bit step).
+Verified: tests/test_fast_paths.py: fast vs reference agree to float rounding (incl. borders: the first
+          sparse defect version disagreed there because the reference double-counts edge neighbours;
+          fixed to match). Reference versions kept.
+Speed-up (full-size frame, on my machine): MHC 2.5x, bilinear 3.2x, defects 12.7x, tone 1.4x.
+Pipeline: before 2371 ± 100 ms -> after ___ ± ___ ms (benchmark_pipeline.py, 5 runs).
+
+Pipeline: before 2371 ± 100 ms -> after 1348 ± 55 ms (1.76x; benchmark_pipeline.py, 5 runs, DSC_2223).
+          Measured on the Mac: demosaic 1009 -> 305 ms (3.3x), defects 265 -> 40 ms (6.6x), tone 230 -> 125 ms (1.8x).
+          The guided denoiser (504 ms, 37 %) is now the largest stage, then demosaic (305 ms) and sharpen (252 ms).
